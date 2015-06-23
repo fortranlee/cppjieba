@@ -5,9 +5,7 @@
 #include <string.h>
 #include "Limonp/Config.hpp"
 #include "Husky/ThreadPoolServer.hpp"
-#include "MPSegment.hpp"
-#include "HMMSegment.hpp"
-#include "MixSegment.hpp"
+#include "PosTagger.hpp"
 
 using namespace Husky;
 using namespace CppJieba;
@@ -15,16 +13,16 @@ using namespace CppJieba;
 class ReqHandler: public IRequestHandler
 {
     public:
-        ReqHandler(const string& dictPath, const string& modelPath, const string& userDictPath): _segment(dictPath, modelPath, userDictPath){};
+        ReqHandler(const string& dictPath, const string& modelPath, const string& userDictPath): _tagger(dictPath, modelPath, userDictPath){};
         virtual ~ReqHandler(){};
     public:
         virtual bool do_GET(const HttpReqInfo& httpReq, string& strSnd) const
         {
             string sentence, tmp;
-            vector<string> words;
+            vector<pair<string, string> > words;
             httpReq.GET("key", tmp); 
             URLDecode(tmp, sentence);
-            _segment.cut(sentence, words);
+            _tagger.tag(sentence, words);
             if(httpReq.GET("format", tmp) && tmp == "simple")
             {
                 join(words.begin(), words.end(), strSnd, " ");
@@ -35,13 +33,13 @@ class ReqHandler: public IRequestHandler
         }
         virtual bool do_POST(const HttpReqInfo& httpReq, string& strSnd) const
         {
-            vector<string> words;
-            _segment.cut(httpReq.getBody(), words);
+            vector<pair<string, string> > words;
+            _tagger.tag(httpReq.getBody(), words);
             strSnd << words;
             return true;
         }
     private:
-        MixSegment _segment;
+        PosTagger _tagger;
 };
 
 bool run(int argc, char** argv)
